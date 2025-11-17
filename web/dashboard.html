@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Parking Digital Twin</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header>
+    <h1>City Smart Parking – Live Slots</h1>
+    <div class="stats">
+        <span id="totalSlots">Total: 0</span>
+        <span id="freeSlots">Free: 0</span>
+        <span id="occupiedSlots">Occupied: 0</span>
+    </div>
+</header>
+
+<main>
+    <section class="grid-wrapper">
+        <div id="slotGrid" class="slot-grid"></div>
+    </section>
+    <section class="legend">
+        <div><span class="dot free"></span> Free slot</div>
+        <div><span class="dot occupied"></span> Occupied slot</div>
+    </section>
+</main>
+
+<footer>
+    <p>Powered by Java smart logic. Refresh to pull the latest snapshot exported by the desktop app.</p>
+</footer>
+
+<script src="dashboard.js"></script>
+</body>
+</html>
+

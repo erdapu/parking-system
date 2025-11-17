@@ -1,0 +1,137 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+:root {
+    --free: #2ecc71;
+    --occupied: #e74c3c;
+    --panel: #f9fafb;
+    --text: #1f2937;
+    --muted: #6b7280;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #eef2ff;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background: #111827;
+    color: white;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.stats span {
+    margin-right: 1rem;
+    font-weight: 600;
+}
+
+main {
+    flex: 1;
+    padding: 2rem;
+}
+
+.grid-wrapper {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.08);
+}
+
+.slot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.slot-card {
+    border-radius: 10px;
+    padding: 1rem;
+    background: white;
+    border: 2px solid transparent;
+    transition: transform 0.2s ease, border 0.2s ease;
+}
+
+.slot-card.free {
+    border-color: rgba(46, 204, 113, 0.4);
+}
+
+.slot-card.occupied {
+    border-color: rgba(231, 76, 60, 0.5);
+    background: #fff5f5;
+}
+
+.slot-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.slot-card .meta {
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.slot-card .badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.slot-card.free .badge {
+    background: rgba(46, 204, 113, 0.15);
+    color: var(--free);
+}
+
+.slot-card.occupied .badge {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--occupied);
+}
+
+.legend {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 2rem;
+    font-size: 0.95rem;
+}
+
+.dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+.dot.free {
+    background: var(--free);
+}
+
+.dot.occupied {
+    background: var(--occupied);
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
