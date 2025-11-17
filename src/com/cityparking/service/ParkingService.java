@@ -25,6 +25,7 @@ public class ParkingService {
     private final PriorityQueue<ParkingSlot> availableSlots;
     private final Map<String, ParkingTicket> activeTickets = new HashMap<>();
     private final Map<String, ParkingTicket> ticketsByPlate = new HashMap<>();
+    private final Map<String, ParkingTicket> ticketsBySlot = new HashMap<>();
     private final Deque<ParkingTicket> recentHistory = new ArrayDeque<>();
     private final RateCard rateCard;
     private double totalRevenue = 0.0;
@@ -42,8 +43,7 @@ public class ParkingService {
         }
         slot.occupy(vehicle, LocalDateTime.now());
         ParkingTicket ticket = new ParkingTicket(slot, vehicle);
-        activeTickets.put(ticket.getTicketId(), ticket);
-        ticketsByPlate.put(vehicle.getPlateNumber(), ticket);
+        registerTicket(ticket);
         return Optional.of(ticket);
     }
 
@@ -59,12 +59,32 @@ public class ParkingService {
         ticket.close(fee);
         totalRevenue += fee;
         ticketsByPlate.remove(ticket.getVehicle().getPlateNumber());
+        ticketsBySlot.remove(ticket.getSlot().getSlotId().toUpperCase());
         recentHistory.addFirst(ticket);
         while (recentHistory.size() > 8) {
             recentHistory.removeLast();
         }
         slot.release();
         availableSlots.add(slot);
+        return Optional.of(ticket);
+    }
+
+    public Optional<ParkingTicket> assignSlotTo(String slotId, VehicleInfo vehicle) {
+        if (slotId == null || slotId.isBlank()) {
+            return Optional.empty();
+        }
+        Optional<ParkingSlot> slotOpt = parkingLot.findSlotById(slotId);
+        if (slotOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        ParkingSlot slot = slotOpt.get();
+        if (slot.isOccupied()) {
+            return Optional.empty();
+        }
+        availableSlots.remove(slot);
+        slot.occupy(vehicle, LocalDateTime.now());
+        ParkingTicket ticket = new ParkingTicket(slot, vehicle);
+        registerTicket(ticket);
         return Optional.of(ticket);
     }
 
@@ -81,6 +101,13 @@ public class ParkingService {
             return Optional.empty();
         }
         return Optional.ofNullable(ticketsByPlate.get(plateNumber.trim().toUpperCase()));
+    }
+
+    public Optional<ParkingTicket> findActiveTicketBySlot(String slotId) {
+        if (slotId == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(ticketsBySlot.get(slotId.trim().toUpperCase()));
     }
 
     public Map<Integer, Long> getFloorLoad() {
@@ -101,8 +128,10 @@ public class ParkingService {
         return totalRevenue;
     }
 
-    public double estimateFee(long hours) {
-        return rateCard.feeForHours(Math.max(1, hours));
+    public double estimateFee(double hours) {
+        double sanitized = Math.max(0.25, hours);
+        long roundedHours = Math.max(1, (long) Math.ceil(sanitized));
+        return rateCard.feeForHours(roundedHours);
     }
 
     public Map<String, ParkingTicket> getActiveTickets() {
@@ -111,6 +140,12 @@ public class ParkingService {
 
     public ParkingLot getParkingLot() {
         return parkingLot;
+    }
+
+    private void registerTicket(ParkingTicket ticket) {
+        activeTickets.put(ticket.getTicketId(), ticket);
+        ticketsByPlate.put(ticket.getVehicle().getPlateNumber(), ticket);
+        ticketsBySlot.put(ticket.getSlot().getSlotId().toUpperCase(), ticket);
     }
 }
 

@@ -37,6 +37,16 @@ public class ParkingLot {
         return true;
     }
 
+    public Optional<ParkingSlot> findSlotById(String slotId) {
+        if (slotId == null || slotId.isBlank()) {
+            return Optional.empty();
+        }
+        String normalized = slotId.trim().toUpperCase();
+        return slots.stream()
+                .filter(slot -> slot.getSlotId().equalsIgnoreCase(normalized))
+                .findFirst();
+    }
+
     public List<ParkingSlot> getAvailableSlots() {
         return slots.stream().filter(slot -> !slot.isOccupied()).collect(Collectors.toList());
     }

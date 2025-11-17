@@ -1,5 +1,5 @@
 [
-  {"slotId":"F0-S01","floor":0,"distance":4,"occupied":false,"vehicle":""},
+  {"slotId":"F0-S01","floor":0,"distance":4,"occupied":true,"vehicle":"JK 03"},
   {"slotId":"F0-S02","floor":0,"distance":8,"occupied":false,"vehicle":""},
   {"slotId":"F0-S03","floor":0,"distance":12,"occupied":false,"vehicle":""},
   {"slotId":"F0-S04","floor":0,"distance":16,"occupied":false,"vehicle":""},
@@ -30,7 +30,7 @@
   {"slotId":"F2-S05","floor":2,"distance":120,"occupied":false,"vehicle":""},
   {"slotId":"F2-S06","floor":2,"distance":124,"occupied":false,"vehicle":""},
   {"slotId":"F2-S07","floor":2,"distance":128,"occupied":false,"vehicle":""},
-  {"slotId":"F2-S08","floor":2,"distance":132,"occupied":false,"vehicle":""},
+  {"slotId":"F2-S08","floor":2,"distance":132,"occupied":true,"vehicle":"JK04"},
   {"slotId":"F2-S09","floor":2,"distance":136,"occupied":false,"vehicle":""},
   {"slotId":"F2-S10","floor":2,"distance":140,"occupied":false,"vehicle":""},
   {"slotId":"F2-S11","floor":2,"distance":144,"occupied":false,"vehicle":""},

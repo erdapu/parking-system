@@ -25,6 +25,8 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,9 +47,7 @@ public class ParkingApp extends JFrame {
     private final JTextField ticketField = new JTextField(8);
     private final JTextField searchPlateField = new JTextField(10);
     private final JTextField estimateHoursField = new JTextField("2", 4);
-    private final JTextField slotIdField = new JTextField(8);
-    private final JTextField slotFloorField = new JTextField("0", 3);
-    private final JTextField slotDistanceField = new JTextField("10", 4);
+    private final JTextField manualSlotField = new JTextField(8);
     private final JTextArea receiptArea = new JTextArea(8, 28);
     private final JTextArea analyticsArea = new JTextArea(10, 28);
 
@@ -76,6 +76,15 @@ public class ParkingApp extends JFrame {
 
         slotTable.setRowHeight(22);
         slotTable.setPreferredScrollableViewportSize(new Dimension(480, 250));
+        slotTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = slotTable.getSelectedRow();
+                if (row >= 0) {
+                    showDetailsForSlot(row);
+                }
+            }
+        });
         add(new JScrollPane(slotTable), BorderLayout.CENTER);
 
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -101,12 +110,23 @@ public class ParkingApp extends JFrame {
         gbc.gridx = 1;
         formPanel.add(phoneField, gbc);
 
+        gbc.gridx = 0;
+        gbc.gridy++;
+        formPanel.add(new JLabel("Assign Slot ID"), gbc);
+        gbc.gridx = 1;
+        formPanel.add(manualSlotField, gbc);
+
         JButton assignButton = new JButton("Auto Assign Nearest Slot");
         assignButton.addActionListener(e -> autoAssignVehicle());
         gbc.gridx = 0;
         gbc.gridy++;
         gbc.gridwidth = 2;
         formPanel.add(assignButton, gbc);
+
+        JButton manualAssignButton = new JButton("Park In Slot ID");
+        manualAssignButton.addActionListener(e -> assignVehicleToSlot());
+        gbc.gridy++;
+        formPanel.add(manualAssignButton, gbc);
 
         gbc.gridwidth = 1;
         gbc.gridx = 0;
@@ -123,31 +143,6 @@ public class ParkingApp extends JFrame {
         formPanel.add(releaseButton, gbc);
 
         gbc.gridwidth = 1;
-        gbc.gridx = 0;
-        gbc.gridy++;
-        formPanel.add(new JLabel("Slot ID"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(slotIdField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        formPanel.add(new JLabel("Floor"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(slotFloorField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        formPanel.add(new JLabel("Distance (m)"), gbc);
-        gbc.gridx = 1;
-        formPanel.add(slotDistanceField, gbc);
-
-        JButton addSlotButton = new JButton("Add Custom Slot");
-        addSlotButton.addActionListener(e -> addCustomSlot());
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        formPanel.add(addSlotButton, gbc);
-
         gbc.gridwidth = 1;
         gbc.gridx = 0;
         gbc.gridy++;
@@ -155,7 +150,7 @@ public class ParkingApp extends JFrame {
         gbc.gridx = 1;
         formPanel.add(searchPlateField, gbc);
 
-        JButton searchButton = new JButton("Locate My Car");
+        JButton searchButton = new JButton("Locate Car");
         searchButton.addActionListener(e -> searchVehicle());
         gbc.gridx = 0;
         gbc.gridy++;
@@ -191,39 +186,39 @@ public class ParkingApp extends JFrame {
     }
 
     private void autoAssignVehicle() {
-        String plate = plateField.getText().trim();
-        String owner = ownerField.getText().trim();
-        String phone = phoneField.getText().trim();
-        if (plate.isEmpty() || owner.isEmpty() || phone.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please fill vehicle, owner and phone details.", "Missing data", JOptionPane.WARNING_MESSAGE);
+        VehicleInfo vehicle = buildVehicleFromForm();
+        if (vehicle == null) {
             return;
         }
-
-        VehicleInfo vehicle = new VehicleInfo(plate, owner, phone);
         Optional<ParkingTicket> ticket = parkingService.assignSlot(vehicle);
         if (ticket.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No slot available. Direct vehicle to overflow lot.", "Parking Full", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        showEntryReceipt(ticket.get(), "ENTRY CONFIRMATION");
+        clearVehicleForm();
+        refreshView();
+    }
+
+    private void assignVehicleToSlot() {
+        String slotId = manualSlotField.getText().trim();
+        if (slotId.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Enter the slot id where you want to park the vehicle.", "Missing slot id", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        VehicleInfo vehicle = buildVehicleFromForm();
+        if (vehicle == null) {
+            return;
+        }
+        Optional<ParkingTicket> ticket = parkingService.assignSlotTo(slotId, vehicle);
+        if (ticket.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Slot not available or does not exist. Please verify.", "Unable to park", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         ParkingTicket issued = ticket.get();
-        receiptArea.setText(
-                """
-                        ENTRY CONFIRMATION
-                        Ticket: %s
-                        Slot: %s
-                        Vehicle: %s
-                        Owner: %s
-                        Check-In: %s
-                        """
-                        .formatted(
-                                issued.getTicketId(),
-                                issued.getSlot(),
-                                issued.getVehicle().getPlateNumber(),
-                                issued.getVehicle().getOwnerName(),
-                                issued.getCheckInTime()));
-        plateField.setText("");
-        ownerField.setText("");
-        phoneField.setText("");
+        manualSlotField.setText("");
+        showEntryReceipt(issued, "MANUAL ENTRY CONFIRMATION");
+        clearVehicleForm();
         refreshView();
     }
 
@@ -239,14 +234,15 @@ public class ParkingApp extends JFrame {
             return;
         }
         ParkingTicket ticket = closed.get();
+        double hoursParked = ticket.getDuration().toMinutes() / 60.0;
         receiptArea.setText(
                 """
                         EXIT RECEIPT
                         Ticket: %s
                         Slot: %s
                         Vehicle: %s
-                        Parked for: %d mins
-                        Amount Due: ₹%.2f
+                        Parked for: %d mins (%.1f hrs)
+                        Amount Due: INR %.2f
                         Thank you. Drive safe!
                         """
                         .formatted(
@@ -254,39 +250,48 @@ public class ParkingApp extends JFrame {
                                 ticket.getSlot(),
                                 ticket.getVehicle().getPlateNumber(),
                                 ticket.getDuration().toMinutes(),
+                                hoursParked,
                                 ticket.getAmount()));
         ticketField.setText("");
         refreshView();
     }
 
-    private void addCustomSlot() {
-        String slotId = slotIdField.getText().trim().toUpperCase();
-        String floorText = slotFloorField.getText().trim();
-        String distanceText = slotDistanceField.getText().trim();
-        if (slotId.isEmpty() || floorText.isEmpty() || distanceText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Provide slot id, floor and distance.", "Missing data", JOptionPane.WARNING_MESSAGE);
-            return;
+    private VehicleInfo buildVehicleFromForm() {
+        String plate = plateField.getText().trim();
+        String owner = ownerField.getText().trim();
+        String phone = phoneField.getText().trim();
+        if (plate.isEmpty() || owner.isEmpty() || phone.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please fill vehicle number, owner name and phone.", "Missing data", JOptionPane.WARNING_MESSAGE);
+            return null;
         }
-        try {
-            int floor = Integer.parseInt(floorText);
-            int distance = Integer.parseInt(distanceText);
-            if (distance <= 0) {
-                throw new NumberFormatException("distance");
-            }
-            ParkingSlot slot = new ParkingSlot(slotId, floor, distance);
-            boolean added = parkingService.registerSlot(slot);
-            if (!added) {
-                JOptionPane.showMessageDialog(this, "Slot id already exists.", "Duplicate slot", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            JOptionPane.showMessageDialog(this, "Slot " + slotId + " added successfully.", "Slot registered", JOptionPane.INFORMATION_MESSAGE);
-            slotIdField.setText("");
-            slotFloorField.setText("0");
-            slotDistanceField.setText("10");
-            refreshView();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "Floor and distance must be valid numbers.", "Invalid input", JOptionPane.ERROR_MESSAGE);
-        }
+        return new VehicleInfo(plate, owner, phone);
+    }
+
+    private void clearVehicleForm() {
+        plateField.setText("");
+        ownerField.setText("");
+        phoneField.setText("");
+    }
+
+    private void showEntryReceipt(ParkingTicket issued, String heading) {
+        receiptArea.setText(
+                """
+                        %s
+                        Ticket: %s
+                        Slot: %s
+                        Vehicle: %s
+                        Owner: %s
+                        Phone: %s
+                        Check-In: %s
+                        """
+                        .formatted(
+                                heading,
+                                issued.getTicketId(),
+                                issued.getSlot(),
+                                issued.getVehicle().getPlateNumber(),
+                                issued.getVehicle().getOwnerName(),
+                                issued.getVehicle().getPhoneNumber(),
+                                issued.getCheckInTime()));
     }
 
     private void searchVehicle() {
@@ -320,12 +325,16 @@ public class ParkingApp extends JFrame {
     private void showEstimate() {
         String hoursText = estimateHoursField.getText().trim();
         try {
-            long hours = Long.parseLong(hoursText);
+            double hours = Double.parseDouble(hoursText);
             if (hours <= 0) {
                 throw new NumberFormatException("Negative hours");
             }
             double amount = parkingService.estimateFee(hours);
-            JOptionPane.showMessageDialog(this, "Estimated parking fee for " + hours + " hour(s): ₹" + String.format("%.2f", amount), "Tariff estimator", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Estimated parking fee for " + hours + " hour(s): INR " + String.format("%.2f", amount) +
+                            " (rounded up to the next hour)",
+                    "Tariff estimator",
+                    JOptionPane.INFORMATION_MESSAGE);
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Please enter a valid positive number of hours.", "Invalid input", JOptionPane.ERROR_MESSAGE);
         }
@@ -340,6 +349,43 @@ public class ParkingApp extends JFrame {
                 break;
             }
         }
+    }
+
+    private void showDetailsForSlot(int row) {
+        Object value = slotTableModel.getValueAt(row, 0);
+        if (value == null) {
+            return;
+        }
+        String slotId = value.toString();
+        Optional<ParkingTicket> ticket = parkingService.findActiveTicketBySlot(slotId);
+        if (ticket.isEmpty()) {
+            receiptArea.setText(
+                    """
+                            SLOT STATUS
+                            Slot: %s
+                            Currently free and ready for assignment.
+                            """
+                            .formatted(slotId));
+            return;
+        }
+        ParkingTicket details = ticket.get();
+        receiptArea.setText(
+                """
+                        ACTIVE VEHICLE DETAILS
+                        Slot: %s
+                        Ticket ID: %s
+                        Vehicle: %s
+                        Owner: %s
+                        Phone: %s
+                        Checked-In: %s
+                        """
+                        .formatted(
+                                slotId,
+                                details.getTicketId(),
+                                details.getVehicle().getPlateNumber(),
+                                details.getVehicle().getOwnerName(),
+                                details.getVehicle().getPhoneNumber(),
+                                details.getCheckInTime()));
     }
 
     private void refreshView() {
@@ -363,7 +409,7 @@ public class ParkingApp extends JFrame {
 
     private void updateAnalytics() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Revenue Collected Today: ₹").append(String.format("%.2f", parkingService.getTotalRevenue())).append("\n");
+        sb.append("Revenue Collected Today: INR ").append(String.format("%.2f", parkingService.getTotalRevenue())).append("\n");
         sb.append("Active Vehicles: ").append(parkingService.getActiveTickets().size()).append("\n");
 
         sb.append("\nFloor Utilization:\n");
@@ -388,7 +434,7 @@ public class ParkingApp extends JFrame {
             sb.append("No vehicles exited yet.\n");
         } else {
             recent.forEach(ticket -> sb.append(ticket.getVehicle().getPlateNumber())
-                    .append(" -> ₹")
+                    .append(" -> INR ")
                     .append(String.format("%.0f", ticket.getAmount()))
                     .append(" (")
                     .append(ticket.getSlot().getSlotId())

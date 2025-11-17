@@ -21,13 +21,16 @@ public final class SlotSnapshotWriter {
             json.append("[\n");
             for (int i = 0; i < slots.size(); i++) {
                 ParkingSlot slot = slots.get(i);
+                String vehicle = slot.isOccupied() && slot.getCurrentVehicle() != null
+                        ? slot.getCurrentVehicle().getPlateNumber()
+                        : "";
                 json.append("  {")
                         .append("\"slotId\":\"").append(slot.getSlotId()).append("\",")
                         .append("\"floor\":").append(slot.getFloor()).append(',')
                         .append("\"distance\":").append(slot.getDistance()).append(',')
                         .append("\"occupied\":").append(slot.isOccupied()).append(',')
                         .append("\"vehicle\":\"")
-                        .append(slot.isOccupied() ? slot.getCurrentVehicle().getPlateNumber() : "")
+                        .append(vehicle)
                         .append("\"}");
                 if (i < slots.size() - 1) {
                     json.append(",");
